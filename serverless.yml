@@ -1,0 +1,137 @@
+service: serverless-example
+frameworkVersion: "3"
+
+lift:
+  automaticPermissions: false
+
+provider:
+  name: aws
+  runtime: nodejs16.x
+  environment:
+    INTEGRATION_EVENTS_EVENT_BUS: custom-application-events
+    INTEGRATION_EVENTS_SOURCE: my.application
+    ORDERS_TABLE_NAME: ${construct:orders.tableName}
+    INTEGRATION_EVENTS_TABLE_NAME: ${construct:integrationEvents.tableName}
+    TRANSACTIONS_TABLE_NAME: ${construct:transactions.tableName}
+    provider:
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - logs:CreateLogStream
+            - logs:CreateLogGroup
+            - logs:TagResource
+          Resource:
+            - Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/serverless-example-dev*:*"
+        - Effect: Allow
+          Action:
+            - logs:PutLogEvents
+          Resource:
+            - Fn::Sub: "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/serverless-example-dev*:*:*"
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:BatchGetItem
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:PutItem
+            - dynamodb:DeleteItem
+            - dynamodb:BatchWriteItem
+            - dynamodb:UpdateItem
+          Resource:
+            - "Fn::GetAtt":
+                - ordersTableA4C7C531
+                - Arn
+            - "Fn::Join":
+                - "/"
+                - - "Fn::GetAtt":
+                      - ordersTableA4C7C531
+                      - Arn
+                  - "index/*"
+            - "Fn::GetAtt":
+                - integrationEventsTableFBDEF015
+                - Arn
+            - "Fn::Join":
+                - "/"
+                - - "Fn::GetAtt":
+                      - integrationEventsTableFBDEF015
+                      - Arn
+                  - "index/*"
+            - "Fn::GetAtt":
+                - transactionsTable29D14D63
+                - Arn
+            - "Fn::Join":
+                - "/"
+                - - "Fn::GetAtt":
+                      - transactionsTable29D14D63
+                      - Arn
+                  - "index/*"
+        - Effect: Allow
+          Action:
+            - events:PutEvents
+          Resource:
+            - Fn::Sub: "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/${self:provider.environment.INTEGRATION_EVENTS_EVENT_BUS}"
+
+functions:
+  createOrderLambda:
+    handler: api.createOrderLambda
+  reserveCreditLambda:
+    handler: api.reserveCreditLambda
+    events:
+      - eventBridge:
+          eventBus: custom-application-events
+          pattern:
+            source:
+              - my.application
+            detail-type:
+              - OrderPlaced
+  handleReservationOutcomeLambda:
+    handler: api.handleReservationOutcomeLambda
+    events:
+      - eventBridge:
+          eventBus: custom-application-events
+          pattern:
+            source:
+              - my.application
+            detail-type:
+              - ReservationOutcome
+
+plugins:
+  - serverless-esbuild
+  - serverless-lift
+
+constructs:
+  orders:
+    type: database/dynamodb-single-table
+    extensions:
+      table:
+        Properties:
+          KeySchema:
+            - AttributeName: id
+              KeyType: HASH
+          AttributeDefinitions:
+            - AttributeName: id
+              AttributeType: S
+  integrationEvents:
+    type: database/dynamodb-single-table
+    extensions:
+      table:
+        Properties:
+          KeySchema:
+            - AttributeName: id
+              KeyType: HASH
+          AttributeDefinitions:
+            - AttributeName: id
+              AttributeType: S
+  transactions:
+    type: database/dynamodb-single-table
+    extensions:
+      table:
+        Properties:
+          KeySchema:
+            - AttributeName: id
+              KeyType: HASH
+          AttributeDefinitions:
+            - AttributeName: id
+              AttributeType: S

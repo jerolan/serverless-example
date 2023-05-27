@@ -1,0 +1,24 @@
+{
+  "scripts": {
+    "test": "jest",
+    "create-order": "serverless invoke --log --function createOrderLambda --data '{\"amount\": \"50000\", \"customerId\": \"17039663-8be0-41d5-a297-0d71b64e8417\"}'",
+    "reserve-credit": "serverless invoke --log --function reserveCreditLambda --data '{\"detail\":{\"amount\": \"50000\", \"customerId\": \"17039663-8be0-41d5-a297-0d71b64e8417\", \"orderId\": \"42efaf83-88db-45b6-8a48-d9e3d7d85a48\"}}'",
+    "handle-reservation-outcome": "serverless invoke --log --function handleReservationOutcomeLambda --data '{\"detail\":{\"isCreditReserved\":true,\"orderId\":\"d8debacc-91cf-4604-b632-30dad9c54fea\"}}'"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.1",
+    "@types/uuid": "^9.0.1",
+    "esbuild": "^0.14.25",
+    "serverless-esbuild": "^1.25.0",
+    "ts-jest": "^29.1.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.338.0",
+    "@aws-sdk/client-eventbridge": "^3.338.0",
+    "@aws-sdk/util-dynamodb": "^3.338.0",
+    "aws-lambda": "^1.0.7",
+    "jest": "^29.5.0",
+    "serverless-lift": "^1.26.1",
+    "uuid": "^9.0.0"
+  }
+}
